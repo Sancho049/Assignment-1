@@ -7,6 +7,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Загрузка пользователей при открытии страницы
+        document.addEventListener('DOMContentLoaded', loadUsers);
+
         // Функция для получения пользователей
         function loadUsers() {
             fetch('/people')
@@ -20,16 +23,77 @@
                             <td>${user.id}</td>
                             <td>${user.username}</td>
                             <td>${user.email}</td>
-                            <td>${user.password}</td> <!-- Отображаем пароль -->
+                            <td>${'*'.repeat(5)}</td>
                             <td>
                                 <button class="btn btn-info" onclick="editUser(${user.id})">Редактировать</button>
                                 <button class="btn btn-danger" onclick="deleteUser(${user.id})">Удалить</button>
+                                <button class="btn btn-primary" onclick="showEmailForm(${user.id}, '${user.email}')">Отправить Email</button>
                             </td>
                         `;
                         usersTable.appendChild(row);
                     });
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => console.error('Ошибка:', error));
+        }
+
+        // Функция для проверки корректности email
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        // Функция для отображения формы отправки email
+        function showEmailForm(userId, email) {
+            document.getElementById("emailFormContainer").style.display = 'block'; // Показать форму
+            document.getElementById("emailUserId").value = userId; // Сохранить ID пользователя
+            document.getElementById("recipientEmail").value = email; // Автоматически заполнить поле email
+        }
+
+        // Функция для отправки email с вложением
+        async function sendEmail() {
+            const email = document.getElementById("recipientEmail").value.trim();
+            const subject = document.getElementById("emailSubject").value.trim();
+            const body = document.getElementById("emailBody").value.trim();
+            const fileInput = document.getElementById("emailFile");
+
+            // Проверка корректности email
+            if (!validateEmail(email)) {
+                alert('Введите корректный email.');
+                return;
+            }
+
+            if (!subject || !body) {
+                alert('Все поля должны быть заполнены.');
+                return;
+            }
+
+            // Формирование данных формы
+            const formData = new FormData();
+            formData.append("to", email);
+            formData.append("subject", subject);
+            formData.append("body", body);
+
+            if (fileInput.files.length > 0) {
+                formData.append("file", fileInput.files[0]);
+            }
+
+            try {
+                const response = await fetch('/admin/send', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    alert('Email отправлен успешно');
+                    document.getElementById("emailForm").reset();
+                    document.getElementById("emailFormContainer").style.display = 'none';
+                } else {
+                    const errorData = await response.json();
+                    alert(`Ошибка: ${errorData.message || 'Не удалось отправить email'}`);
+                }
+            } catch (error) {
+                alert('Ошибка сети: ' + error.message);
+            }
         }
 
         // Функция для редактирования пользователя
@@ -41,9 +105,9 @@
                     document.getElementById("userId").value = data.id;
                     document.getElementById("username").value = data.username;
                     document.getElementById("email").value = data.email;
-                    document.getElementById("password").value = data.password; // Отображаем текущий пароль
+                    document.getElementById("password").value = data.password;
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => console.error('Ошибка:', error));
         }
 
         // Функция для обновления пользователя
@@ -62,16 +126,16 @@
                 },
                 body: JSON.stringify(user),
             })
-            .then(response => {
-                if (response.ok) {
-                    alert('Пользователь обновлен');
-                    loadUsers(); // Перезагрузить список пользователей
-                    document.getElementById("editForm").style.display = 'none'; // Скрыть форму
-                } else {
-                    alert('Ошибка при обновлении пользователя');
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                .then(response => {
+                    if (response.ok) {
+                        alert('Пользователь обновлен');
+                        loadUsers();
+                        document.getElementById("editForm").style.display = 'none';
+                    } else {
+                        alert('Ошибка при обновлении пользователя');
+                    }
+                })
+                .catch(error => console.error('Ошибка:', error));
         }
 
         // Функция для удаления пользователя
@@ -80,63 +144,88 @@
                 fetch(`/people/${id}`, {
                     method: 'DELETE',
                 })
-                .then(response => {
-                    if (response.ok) {
-                        alert('Пользователь удален');
-                        loadUsers(); // Перезагрузить список пользователей
-                    } else {
-                        alert('Ошибка при удалении пользователя');
-                    }
-                })
-                .catch(error => console.error('Error:', error));
+                    .then(response => {
+                        if (response.ok) {
+                            alert('Пользователь удален');
+                            loadUsers();
+                        } else {
+                            alert('Ошибка при удалении пользователя');
+                        }
+                    })
+                    .catch(error => console.error('Ошибка:', error));
             }
         }
     </script>
 </head>
+
 <body>
-    <div class="container">
-        <h2>Панель админа</h2>
+<div class="container">
+    <h2>Панель админа</h2>
+    <a href="/home">Log out</a>
 
-        <!-- Кнопка для отображения всех пользователей -->
-        <button class="btn btn-primary" onclick="loadUsers()">Показать всех пользователей</button>
+    <!-- Таблица с пользователями -->
+    <table class="table mt-3">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Имя пользователя</th>
+            <th>Email</th>
+            <th>Пароль</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="usersTable">
+        <!-- Данные пользователей будут вставляться сюда -->
+        </tbody>
+    </table>
 
-        <!-- Таблица с пользователями -->
-        <table class="table mt-3">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Имя пользователя</th>
-                    <th>Email</th>
-                    <th>Пароль</th> <!-- Добавлено отображение пароля -->
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody id="usersTable">
-                <!-- Данные пользователей будут вставляться сюда -->
-            </tbody>
-        </table>
-
-        <!-- Форма для редактирования пользователя -->
-        <div id="editForm" style="display:none;">
-            <h3>Редактировать пользователя</h3>
-            <form>
-                <input type="hidden" id="userId">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Имя пользователя</label>
-                    <input type="text" class="form-control" id="username" required>
-                </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" required>
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Пароль</label>
-                    <input type="password" class="form-control" id="password" required>
-                </div>
-                <button type="button" class="btn btn-success" onclick="updateUser()">Сохранить изменения</button>
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editForm').style.display='none'">Отменить</button>
-            </form>
-        </div>
+    <!-- Форма для редактирования пользователя -->
+    <div id="editForm" style="display:none;">
+        <h3>Редактировать пользователя</h3>
+        <form>
+            <input type="hidden" id="userId">
+            <div class="mb-3">
+                <label for="username" class="form-label">Имя пользователя</label>
+                <input type="text" class="form-control" id="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Пароль</label>
+                <input type="password" class="form-control" id="password" required>
+            </div>
+            <button type="button" class="btn btn-success" onclick="updateUser()">Сохранить изменения</button>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('editForm').style.display='none'">Отменить</button>
+        </form>
     </div>
+
+    <!-- Форма для отправки email -->
+    <div id="emailFormContainer" style="display:none;">
+        <h3>Отправить Email</h3>
+        <form id="emailForm" enctype="multipart/form-data">
+            <input type="hidden" id="emailUserId">
+            <div class="mb-3">
+                <label for="recipientEmail" class="form-label">Email получателя</label>
+                <input type="email" class="form-control" id="recipientEmail" name="to" required>
+            </div>
+            <div class="mb-3">
+                <label for="emailSubject" class="form-label">Тема</label>
+                <input type="text" class="form-control" id="emailSubject" name="subject" required>
+            </div>
+            <div class="mb-3">
+                <label for="emailBody" class="form-label">Сообщение</label>
+                <textarea class="form-control" id="emailBody" name="body" rows="4" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="emailFile" class="form-label">Прикрепить файл</label>
+                <input type="file" class="form-control" id="emailFile" name="file">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="sendEmail()">Отправить</button>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('emailFormContainer').style.display='none'">Отменить</button>
+        </form>
+    </div>
+</div>
 </body>
 </html>

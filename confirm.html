@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Confirmation</title>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const token = new URLSearchParams(window.location.search).get("token");
+
+      if (!token) {
+        alert("Token is missing.");
+        return;
+      }
+
+      fetch(`/confirm?token=${token}`, { method: "GET" })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error("Email verification failed.");
+                }
+                return response.json();
+              })
+              .then(() => {
+                alert("Email verified successfully!");
+                localStorage.setItem("emailVerified", "true"); // Уведомляем другие вкладки
+                window.close(); // Закрываем вкладку
+              })
+              .catch((error) => {
+                alert(`Error: ${error.message}`);
+              });
+    });
+  </script>
+</head>
+<body>
+<h1>Email Verification</h1>
+<p>Verifying your email. Please wait...</p>
+</body>
+</html>

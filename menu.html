@@ -20,6 +20,16 @@
             color: #333;
             margin-top: 20px;
         }
+        .filter-container {
+            margin: 20px auto;
+            width: 80%;
+            display: flex;
+            justify-content: space-between;
+        }
+        .filter-container input, .filter-container select {
+            padding: 8px;
+            font-size: 1rem;
+        }
         table {
             width: 80%;
             margin: 20px auto;
@@ -27,26 +37,43 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             background-color: #fff;
         }
-
         th, td {
             padding: 12px;
             text-align: left;
             border: 1px solid #ddd;
         }
-
         th {
             background-color: #fff3e0;
             color: #3e2723;
-            font-size: 16px;
         }
-
-        td {
-            background-color: #f9f9f9;
-            font-size: 14px;
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin: 20px auto;
         }
-
-        tr:hover {
-            background-color: #f1f1f1;
+        .pagination button {
+            margin: 5px;
+            padding: 10px 15px;
+            border: none;
+            background-color: #3e2723;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .pagination button:hover {
+            background-color: #fbc02d;
+            color: #3e2723;
+        }
+        .pagination .active {
+            background-color: #fbc02d;
+            color: #3e2723;
+        }
+        footer {
+            background-color: #3e2723;
+            color: white;
+            padding: 50px 0;
+            text-align: center;
+            margin-top: auto;
         }
 
         header {
@@ -67,139 +94,136 @@
         .navbar-nav .nav-link:hover {
             color: #fbc02d;
         }
-
-        footer {
-            background-color: #3e2723;
-            color: white;
-            padding: 50px 0;
-            text-align: center;
-            margin-top: auto;
-        }
-
-        footer p {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .table th, .table td {
-            vertical-align: middle;
-        }
-
-        img {
-            width: 100px;
-            height: auto;
-            border-radius: 10px;
-        }
-
-        .filter-container {
-            margin: 20px auto;
-            width: 80%;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .filter-container input {
-            padding: 8px;
-            font-size: 1rem;
-        }
     </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-custom">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">Black Gold Cafe</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="/home">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/menu1">Menu</a>
-                        </li>
-                    </ul>
-                </div>
+<header>
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Black Gold Cafe</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/home">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/menu1">Menu</a>
+                    </li>
+                </ul>
             </div>
-        </nav>
-    </header>
+        </div>
+    </nav>
+</header>
 
-    <h1>Menu</h1>
+<h1>Menu</h1>
+<div class="filter-container">
+    <input type="text" id="nameFilter" placeholder="Search by name" oninput="filterMenu()">
+    <input type="number" id="priceFilter" placeholder="Max price" oninput="filterMenu()">
+    <select id="sort" onchange="fetchMenu()">
+        <option value="">Sort by</option>
+        <option value="name">Name</option>
+        <option value="price_asc">Price (Low to High)</option>
+        <option value="price_desc">Price (High to Low)</option>
+    </select>
+</div>
 
-    <!-- Фильтры для поиска -->
-    <div class="filter-container">
-        <input type="text" id="nameFilter" placeholder="Search by name" oninput="filterMenu()">
-        <input type="number" id="priceFilter" placeholder="Search by price" oninput="filterMenu()">
-    </div>
+<table id="menu-table">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Photo</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
 
-    <table id="menu-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Photo</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Здесь будут данные о меню -->
-        </tbody>
-    </table>
+<div class="pagination" id="pagination"></div>
 
-    <script>
-        let menuItems = [];  // Массив с данными о меню
+<div id="user-info" style="position: fixed; top: 10px; right: 10px;">
+    <span id="username-display"></span>
+</div>
 
-        // Функция для загрузки меню
-        async function fetchMenu() {
-            try {
-                const response = await fetch('/menu');
-                menuItems = await response.json();
 
-                displayMenu(menuItems);  // Отображаем меню
-            } catch (error) {
-                console.error('Error fetching menu:', error);
-            }
+<script>
+    // Номер текущей страницы и массив с блюдами в меню
+    let currentPage = 1, menuItems = [];
+
+    // Функция получает данные меню с сервера для текущей страницы
+    async function fetchMenu(page = 1) {
+        // Получение значений для фильрации и сортировки
+        const nameFilter = document.getElementById('nameFilter').value;
+        const priceFilter = document.getElementById('priceFilter').value;
+        const sort = document.getElementById('sort').value;
+
+        // Формирование URL с текущими параметрами их для активации,
+        // если они заданы
+        let url = `/menu?page=${page}`;
+        if (nameFilter) url += `&nameFilter=${nameFilter}`;
+        if (priceFilter) url += `&priceFilter=${priceFilter}`;
+        if (sort) url += `&sort=${sort}`;
+
+        // Запрос данных с сервера(элементы меню, общее количество страниц и текущая страница)
+        // для дальнейшего отображения элементов меню и кнопок для переключения страниц
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            menuItems = data.menuItems;
+            displayMenu(menuItems);
+            renderPagination(data.totalPages, data.currentPage);
+        } catch (error) {
+            console.error('Error fetching menu:', error);
         }
+    }
 
-        // Функция для отображения меню
-        function displayMenu(menu) {
-            const tableBody = document.querySelector('#menu-table tbody');
-            tableBody.innerHTML = '';  // Очищаем таблицу
-
-            menu.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
+    // Функция для вывода элементов меню в HTML-таблицу
+    function displayMenu(menu) {
+        const tableBody = document.querySelector('#menu-table tbody');
+        tableBody.innerHTML = '';
+        // Создание строк в таблице для каждого элемента меню
+        menu.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
                     <td>${item.name}</td>
                     <td>${item.category}</td>
                     <td>${item.price}</td>
                     <td><img src="${item.photo}" alt="${item.name}" width="100"></td>
                 `;
-                tableBody.appendChild(row);
-            });
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Функция для создания кнопок пагинации
+    function renderPagination(totalPages, currentPage) {
+        const paginationContainer = document.getElementById('pagination');
+        // Каждой странице создается кнопка, которая потом добавляется в контейнер
+        paginationContainer.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const button = document.createElement('button');
+            button.textContent = i;
+            button.onclick = () => fetchMenu(i);
+            if (i === currentPage) {
+                button.classList.add('active');
+            }
+            paginationContainer.appendChild(button);
         }
+    }
 
-        // Функция для фильтрации меню
-        function filterMenu() {
-            const nameFilter = document.getElementById('nameFilter').value.toLowerCase();
-            const priceFilter = document.getElementById('priceFilter').value;
+    // Функция для применения фильтров и загрузки данных
+    function filterMenu() {
+        fetchMenu(1);
+    }
 
-            const filteredMenu = menuItems.filter(item => {
-                const matchesName = item.name.toLowerCase().includes(nameFilter);
-                const matchesPrice = priceFilter ? item.price <= priceFilter : true;
-                return matchesName && matchesPrice;
-            });
+    window.onload = () => fetchMenu();
 
-            displayMenu(filteredMenu);  // Отображаем отфильтрованное меню
-        }
+</script>
 
-        // Загружаем меню при загрузке страницы
-        window.onload = fetchMenu;
-    </script>
-
-    <footer>
-        <p>&copy; 2024 Black Gold Cafe. All rights reserved.</p>
-    </footer>
+<footer>
+    <p>&copy; 2024 Black Gold Cafe. All rights reserved.</p>
+</footer>
 </body>
 </html>

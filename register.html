@@ -63,65 +63,83 @@
 </head>
 <body>
 
-    <div class="form-container">
-        <h2>Registration</h2>
-        <form id="registrationForm">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required minlength="3">
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="6">
-            </div>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            <div class="form-group">
-                <button type="submit">Register</button>
-            </div>
-        </form>
-    </div>
+<div class="form-container">
+    <h2>Registration</h2>
+    <form id="registrationForm">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required minlength="3">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required minlength="6">
+        </div>
+        <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <button type="submit">Register</button>
+        </div>
+        <p id="errorMessage" class="error-message"></p>
+        <p class="login-message">
+            Already have an account? <a href="/login">Login Now</a>
+        </p>
+    </form>
+</div>
 
-    <script>
-        const form = document.getElementById("registrationForm");
-        
-        form.addEventListener("submit", async function(event) {
-            event.preventDefault();
+<script>
+    const form = document.getElementById("registrationForm");
+    const errorMessage = document.getElementById("errorMessage");
 
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-            const email = document.getElementById("email").value;
+    form.addEventListener("submit", async function(event) {
+        event.preventDefault();
 
-            const userData = {
-                username: username,
-                password: password,
-                email: email
-            };
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirmPassword").value;
+        const email = document.getElementById("email").value;
 
-            try {
-                const response = await fetch("/people", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(userData),
-                });
+        if (password !== confirmPassword) {
+            errorMessage.textContent = "Passwords do not match.";
+            return;
+        }
 
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText}`);
-                }
+        const userData = {
+            username: username,
+            password: password,
+            email: email
+        };
 
-                const data = await response.text();
-                alert(data); 
+        try {
+            const response = await fetch("/signup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(userData),
+            });
 
-                window.location.href = "/home";
-
-            } catch (error) {
-                alert("Error during registration: " + error.message);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
             }
-        });
-    </script>
+
+            const data = await response.json();
+            if (data.verification_url) {
+                window.location.href = data.verification_url;
+            } else {
+                throw new Error("Verification URL not provided.");
+            }
+
+        } catch (error) {
+            errorMessage.textContent = "Error during registration: " + error.message;
+        }
+    });
+</script>
 </body>
 </html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Email</title>
+  <script>
+    async function checkVerificationStatus() {
+      const token = new URLSearchParams(window.location.search).get("token");
+      if (!token) {
+        alert("Verification token not found.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/check_verification?token=${encodeURIComponent(token)}`);
+        if (!response.ok) {
+          throw new Error("Failed to check verification status.");
+        }
+
+        const data = await response.json();
+        if (data.is_verified) {
+          // Уведомляем другие вкладки
+          localStorage.setItem("emailVerified", "true");
+          // Перенаправляем на главную страницу
+          window.location.href = "/home";
+        } else {
+          // Повторная проверка через 5 секунд
+          setTimeout(checkVerificationStatus, 5000);
+        }
+      } catch (error) {
+        console.error("Error checking verification status:", error);
+        setTimeout(checkVerificationStatus, 5000); // Повторная попытка
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      checkVerificationStatus();
+
+      // Обновление текущей вкладки при получении события
+      window.addEventListener("storage", (event) => {
+        if (event.key === "emailVerified" && event.newValue === "true") {
+          window.location.href = "/home";
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+<h1>Verify Your Email</h1>
+<p>Please check your email for the confirmation link.</p>
+<p>Once verified, this page will automatically redirect you to the homepage.</p>
+</body>
+</html>
